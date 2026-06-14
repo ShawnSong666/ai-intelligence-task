@@ -1,0 +1,74 @@
+name: 🤖 AI 全球情报扫描
+
+on:
+  schedule:
+    # 北京时间 8:00, 14:00, 20:00, 02:00 = UTC 0:00, 6:00, 12:00, 18:00
+    - cron: "0 0,6,12,18 * * *"
+  workflow_dispatch:  # 允许手动触发
+    inputs:
+      mode:
+        description: "推送模式"
+        required: false
+        default: "json"
+        type: choice
+        options: ["telegram", "feishu", "dingtalk", "email", "notion", "json", "all"]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🐍 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 安装依赖
+        run: |
+          pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: 📡 创建数据目录
+        run: mkdir -p data
+
+      - name: 🔄 恢复缓存
+        uses: actions/cache@v4
+        with:
+          path: data/cache.db
+          key: ai-intel-cache-${{ github.run_id }}
+          restore-keys: |
+            ai-intel-cache-
+
+      - name: 🚀 运行全球情报扫描
+        env:
+          PYTHONIOENCODING: utf-8
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          PUSH_MODE: ${{ inputs.mode || vars.PUSH_MODE || 'json' }}
+        run: cd scripts && python main.py
+
+      - name: 📊 上传情报结果
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-intelligence-output
+          path: data/intelligence_output.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: 💾 保存缓存
+        uses: actions/cache@v4
+        with:
+          path: data/cache.db
+          key: ai-intel-cache-${{ github.run_id }}
