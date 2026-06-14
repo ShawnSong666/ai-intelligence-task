@@ -45,7 +45,7 @@ jobs:
       - name: 🚀 运行全球情报扫描
         env:
           PYTHONIOENCODING: utf-8
-          DEEPSEEK_API_KEY: *** secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_API_KEY: sk-56aff8b2389f4e649508eb4054b3b5d2 secrets.DEEPSEEK_API_KEY }}
           PUSH_MODE: "json"
         run: python scripts/main.py
 
